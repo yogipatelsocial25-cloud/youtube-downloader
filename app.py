@@ -597,7 +597,7 @@ def download_video():
 
     "noplaylist": True,
 
-    "quiet": True,
+    "quiet": False,
     "no_warnings": False,
 
     "js_runtimes": {
@@ -607,6 +607,9 @@ def download_video():
     "remote_components": {
         "ejs": "github"
     },
+
+    "retries": 3,
+    "fragment_retries": 3,
 }
 
         ydl_opts.update({
