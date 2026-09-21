@@ -55,4 +55,4 @@ RUN mkdir -p downloads
 # START FLASK WITH GUNICORN
 # ============================================================
 
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app"]
+CMD ["sh", "-c", "gunicorn --workers 1 --timeout 300 --bind 0.0.0.0:$PORT app:app"]
