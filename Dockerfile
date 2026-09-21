@@ -2,18 +2,27 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y ffmpeg \
+# System packages
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Deno
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+ENV DENO_INSTALL=/root/.deno
+ENV PATH=/root/.deno/bin:$PATH
+
+# Copy project
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/downloads
+# Create download directory
+RUN mkdir -p downloads
 
-ENV PYTHONUNBUFFERED=1
-
-CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--workers", "1", "--timeout", "0", "app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app"]
