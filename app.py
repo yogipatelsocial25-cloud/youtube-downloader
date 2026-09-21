@@ -1,6 +1,6 @@
+```python
 import os
 import re
-import shutil
 import zipfile
 import uuid
 import threading
@@ -51,10 +51,12 @@ def create_job():
 
 
 def update_job(job_id, **kwargs):
+
     if not job_id:
         return
 
     with status_lock:
+
         if job_id not in download_status:
             download_status[job_id] = {}
 
@@ -62,6 +64,7 @@ def update_job(job_id, **kwargs):
 
 
 def get_job(job_id):
+
     with status_lock:
 
         data = download_status.get(
@@ -78,12 +81,13 @@ def get_job(job_id):
 
         data = dict(data)
 
-        # Calculate real elapsed time on server
         if data.get("started_at"):
+
             if data.get("status") not in [
                 "completed",
                 "error"
             ]:
+
                 data["elapsed"] = int(
                     time.time() - data["started_at"]
                 )
@@ -96,9 +100,6 @@ def get_job(job_id):
 # ============================================================
 
 def safe_filename(name):
-    """
-    Make a Windows-safe filename/folder name.
-    """
 
     name = str(name or "YouTube Video")
 
@@ -145,21 +146,81 @@ def safe_filename(name):
 
 
 # ============================================================
+# COMMON YT-DLP OPTIONS
+# ============================================================
+
+def common_yt_options(job_id=None):
+
+    options = {
+
+        # Playlist
+        "noplaylist": True,
+
+        # Logs
+        "quiet": False,
+        "no_warnings": False,
+
+        # Network
+        "socket_timeout": 30,
+        "retries": 5,
+        "fragment_retries": 5,
+
+        # Download
+        "continuedl": True,
+        "overwrites": False,
+
+        # Fragment download
+        "concurrent_fragment_downloads": 8,
+
+        # Buffer
+        "buffersize": 1024 * 1024,
+
+        # HTTP chunk
+        "http_chunk_size": 10 * 1024 * 1024,
+
+        # ----------------------------------------------------
+        # YouTube JavaScript challenge solving
+        # ----------------------------------------------------
+
+        "js_runtimes": {
+            "deno": {}
+        },
+
+        "remote_components": {
+            "ejs": "github"
+        }
+    }
+
+    if job_id:
+
+        options["progress_hooks"] = [
+            progress_hook(job_id)
+        ]
+
+    return options
+
+
+# ============================================================
 # VIDEO INFORMATION
 # ============================================================
 
 def get_video_info(url):
 
-    options = {
+    options = common_yt_options()
+
+    options.update({
+
         "quiet": True,
+
         "no_warnings": True,
+
         "skip_download": True,
-        "noplaylist": True,
-        "socket_timeout": 15,
-        "retries": 3
-    }
+
+        "noplaylist": True
+    })
 
     with yt_dlp.YoutubeDL(options) as ydl:
+
         return ydl.extract_info(
             url,
             download=False
@@ -181,7 +242,11 @@ def get_available_qualities(info):
         if height:
 
             try:
-                quality_list.add(int(height))
+
+                quality_list.add(
+                    int(height)
+                )
+
             except Exception:
                 pass
 
@@ -202,6 +267,7 @@ def get_available_qualities(info):
             h >= quality
             for h in quality_list
         ):
+
             available.append(quality)
 
     return available
@@ -242,7 +308,11 @@ def format_duration(seconds):
     seconds = int(seconds)
 
     hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
+
+    minutes = (
+        seconds % 3600
+    ) // 60
+
     secs = seconds % 60
 
     if hours > 0:
@@ -265,7 +335,9 @@ def format_duration(seconds):
 
 def find_file(folder, pattern):
 
-    files = list(folder.glob(pattern))
+    files = list(
+        folder.glob(pattern)
+    )
 
     if not files:
         return None
@@ -286,7 +358,9 @@ def progress_hook(job_id):
 
         try:
 
-            status = data.get("status")
+            status = data.get(
+                "status"
+            )
 
             if status == "downloading":
 
@@ -324,11 +398,17 @@ def progress_hook(job_id):
 
                 update_job(
                     job_id,
+
                     status="downloading",
+
                     progress=percent,
+
                     speed=speed,
+
                     eta=eta,
+
                     elapsed=elapsed,
+
                     message="Downloading..."
                 )
 
@@ -336,8 +416,11 @@ def progress_hook(job_id):
 
                 update_job(
                     job_id,
+
                     progress=100,
+
                     status="processing",
+
                     message="Processing file..."
                 )
 
@@ -345,50 +428,6 @@ def progress_hook(job_id):
             pass
 
     return hook
-
-
-# ============================================================
-# FAST YT-DLP OPTIONS
-# ============================================================
-
-def base_fast_options(job_id=None):
-
-    options = {
-
-        "noplaylist": True,
-
-        "quiet": False,
-
-        "no_warnings": False,
-
-        # Concurrent fragments
-        "concurrent_fragment_downloads": 8,
-
-        # Network
-        "retries": 5,
-        "fragment_retries": 5,
-        "socket_timeout": 20,
-
-        # Buffer
-        "buffersize": 1024 * 1024,
-
-        # Resume downloads
-        "continuedl": True,
-
-        # Don't overwrite
-        "overwrites": False,
-
-        # HTTP chunk
-        "http_chunk_size": 10 * 1024 * 1024
-    }
-
-    if job_id:
-
-        options["progress_hooks"] = [
-            progress_hook(job_id)
-        ]
-
-    return options
 
 
 # ============================================================
@@ -422,7 +461,7 @@ def create_download_job():
 
 
 # ============================================================
-# GET JOB STATUS
+# JOB PROGRESS
 # ============================================================
 
 @app.route(
@@ -448,7 +487,9 @@ def video_info():
 
     try:
 
-        data = request.get_json()
+        data = request.get_json(
+            silent=True
+        )
 
         if not data:
 
@@ -470,7 +511,9 @@ def video_info():
                     "Please enter a YouTube URL."
             }), 400
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title = info.get(
             "title",
@@ -523,7 +566,9 @@ def video_info():
     except Exception as e:
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
 
@@ -542,7 +587,9 @@ def download_video():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json(
+            silent=True
+        ) or {}
 
         url = data.get(
             "url",
@@ -569,16 +616,22 @@ def download_video():
             }), 400
 
         if not job_id:
+
             job_id = create_job()
 
         update_job(
             job_id,
+
             status="starting",
+
             progress=0,
+
             message="Getting video information..."
         )
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title, video_folder = get_video_folder(
             info
@@ -589,28 +642,9 @@ def download_video():
             f"{title} - {quality}p.%(ext)s"
         )
 
-        ydl_opts = {
-    "format": "bestvideo*+bestaudio/best",
-    "merge_output_format": "mp4",
-
-    "outtmpl": str(download_path),
-
-    "noplaylist": True,
-
-    "quiet": False,
-    "no_warnings": False,
-
-    "js_runtimes": {
-        "deno": {}
-    },
-
-    "remote_components": {
-        "ejs": "github"
-    },
-
-    "retries": 3,
-    "fragment_retries": 3,
-}
+        ydl_opts = common_yt_options(
+            job_id
+        )
 
         ydl_opts.update({
 
@@ -636,7 +670,9 @@ def download_video():
 
         update_job(
             job_id,
+
             status="downloading",
+
             message=
                 f"Downloading {quality}p video..."
         )
@@ -645,7 +681,9 @@ def download_video():
             ydl_opts
         ) as ydl:
 
-            ydl.download([url])
+            ydl.download(
+                [url]
+            )
 
         video_file = find_file(
             video_folder,
@@ -661,18 +699,9 @@ def download_video():
 
         if video_file is None:
 
-            update_job(
-                job_id,
-                status="error",
-                message=
-                    "Video file not found."
+            raise RuntimeError(
+                "Video was downloaded but MP4 file could not be found."
             )
-
-            return jsonify({
-                "success": False,
-                "error":
-                    "Video was downloaded but MP4 file could not be found."
-            }), 500
 
         elapsed = int(
             time.time()
@@ -682,15 +711,21 @@ def download_video():
 
         update_job(
             job_id,
+
             status="completed",
+
             progress=100,
+
             elapsed=elapsed,
+
             message="Video download completed."
         )
 
         return send_file(
             video_file,
+
             as_attachment=True,
+
             download_name=video_file.name
         )
 
@@ -698,12 +733,16 @@ def download_video():
 
         update_job(
             job_id,
+
             status="error",
+
             message=str(e)
         )
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
 
@@ -722,7 +761,9 @@ def download_audio():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json(
+            silent=True
+        ) or {}
 
         url = data.get(
             "url",
@@ -742,16 +783,22 @@ def download_audio():
             }), 400
 
         if not job_id:
+
             job_id = create_job()
 
         update_job(
             job_id,
+
             status="starting",
+
             progress=0,
+
             message="Preparing audio..."
         )
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title, video_folder = get_video_folder(
             info
@@ -762,28 +809,9 @@ def download_audio():
             f"{title} - Audio.%(ext)s"
         )
 
-        ydl_opts = {
-    "format": "bestvideo*+bestaudio/best",
-    "merge_output_format": "mp4",
-
-    "outtmpl": str(download_path),
-
-    "noplaylist": True,
-
-    "quiet": False,
-    "no_warnings": False,
-
-    "js_runtimes": {
-        "deno": {}
-    },
-
-    "remote_components": {
-        "ejs": "github"
-    },
-
-    "retries": 3,
-    "fragment_retries": 3,
-}
+        ydl_opts = common_yt_options(
+            job_id
+        )
 
         ydl_opts.update({
 
@@ -794,6 +822,7 @@ def download_audio():
                 output_template,
 
             "postprocessors": [
+
                 {
                     "key":
                         "FFmpegExtractAudio",
@@ -807,6 +836,7 @@ def download_audio():
             ],
 
             "postprocessor_args": {
+
                 "ffmpeg": [
                     "-threads",
                     "0"
@@ -816,7 +846,9 @@ def download_audio():
 
         update_job(
             job_id,
+
             status="downloading",
+
             message="Downloading audio..."
         )
 
@@ -824,7 +856,9 @@ def download_audio():
             ydl_opts
         ) as ydl:
 
-            ydl.download([url])
+            ydl.download(
+                [url]
+            )
 
         audio_file = (
             video_folder /
@@ -840,17 +874,9 @@ def download_audio():
 
         if audio_file is None:
 
-            update_job(
-                job_id,
-                status="error",
-                message="Audio file could not be found."
+            raise RuntimeError(
+                "Audio file could not be found."
             )
-
-            return jsonify({
-                "success": False,
-                "error":
-                    "Audio file could not be found."
-            }), 500
 
         elapsed = int(
             time.time()
@@ -860,15 +886,21 @@ def download_audio():
 
         update_job(
             job_id,
+
             status="completed",
+
             progress=100,
+
             elapsed=elapsed,
+
             message="Audio download completed."
         )
 
         return send_file(
             audio_file,
+
             as_attachment=True,
+
             download_name=audio_file.name
         )
 
@@ -876,12 +908,16 @@ def download_audio():
 
         update_job(
             job_id,
+
             status="error",
+
             message=str(e)
         )
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
 
@@ -900,7 +936,9 @@ def download_thumbnail():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json(
+            silent=True
+        ) or {}
 
         url = data.get(
             "url",
@@ -920,16 +958,22 @@ def download_thumbnail():
             }), 400
 
         if not job_id:
+
             job_id = create_job()
 
         update_job(
             job_id,
+
             status="starting",
+
             progress=0,
+
             message="Downloading thumbnail..."
         )
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title, video_folder = get_video_folder(
             info
@@ -942,44 +986,36 @@ def download_thumbnail():
         if not thumbnail_url:
 
             return jsonify({
+
                 "success": False,
+
                 "error":
                     "Thumbnail not available."
             }), 404
 
-        output_template = str(
-            video_folder /
-            f"{title} - Thumbnail.%(ext)s"
+        thumbnail_options = common_yt_options(
+            job_id
         )
 
-       ydl_opts = {
-    "format": "bestvideo*+bestaudio/best",
-    "merge_output_format": "mp4",
+        thumbnail_options.update({
 
-    "outtmpl": str(download_path),
+            "skip_download": True,
 
-    "noplaylist": True,
+            "writethumbnail": True,
 
-    "quiet": False,
-    "no_warnings": False,
-
-    "js_runtimes": {
-        "deno": {}
-    },
-
-    "remote_components": {
-        "ejs": "github"
-    },
-
-    "retries": 3,
-    "fragment_retries": 3,
-}
+            "outtmpl": str(
+                video_folder /
+                f"{title} - Thumbnail.%(ext)s"
+            )
+        })
 
         with yt_dlp.YoutubeDL(
-            ydl_opts
+            thumbnail_options
         ) as ydl:
 
-            ydl.download([url])
+            ydl.download(
+                [url]
+            )
 
         thumbnail_file = find_file(
             video_folder,
@@ -988,17 +1024,9 @@ def download_thumbnail():
 
         if thumbnail_file is None:
 
-            update_job(
-                job_id,
-                status="error",
-                message="Thumbnail file could not be found."
+            raise RuntimeError(
+                "Thumbnail file could not be found."
             )
-
-            return jsonify({
-                "success": False,
-                "error":
-                    "Thumbnail file could not be found."
-            }), 500
 
         elapsed = int(
             time.time()
@@ -1008,15 +1036,21 @@ def download_thumbnail():
 
         update_job(
             job_id,
+
             status="completed",
+
             progress=100,
+
             elapsed=elapsed,
+
             message="Thumbnail downloaded."
         )
 
         return send_file(
             thumbnail_file,
+
             as_attachment=True,
+
             download_name=thumbnail_file.name
         )
 
@@ -1024,18 +1058,22 @@ def download_thumbnail():
 
         update_job(
             job_id,
+
             status="error",
+
             message=str(e)
         )
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
 
 
 # ============================================================
-# DETAILS DOCUMENT
+# CREATE DETAILS FILE
 # ============================================================
 
 def create_details_file(
@@ -1068,51 +1106,39 @@ def create_details_file(
 ============================================================
 
 Title:
-
 {title}
 
 Channel:
-
 {info.get("channel", "Unknown")}
 
 Uploader:
-
 {info.get("uploader", "Unknown")}
 
 YouTube URL:
-
 {info.get("webpage_url", "")}
 
 Video ID:
-
 {info.get("id", "Unknown")}
 
 Duration:
-
 {duration}
 
 Selected Video Quality:
-
 {quality}p
 
 Upload Date:
-
 {info.get("upload_date", "Unknown")}
 
 Views:
-
 {info.get("view_count", "Unknown")}
 
 Likes:
-
 {info.get("like_count", "Unknown")}
 
 Thumbnail URL:
-
 {info.get("thumbnail", "")}
 
 Downloaded:
-
 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
 
@@ -1121,19 +1147,15 @@ Downloaded:
 ============================================================
 
 Video:
-
 {title} - {quality}p.mp4
 
 Audio:
-
 {title} - Audio.mp3
 
 Thumbnail:
-
 {title} - Thumbnail.jpg
 
 Details:
-
 {title} - Details.txt
 
 
@@ -1173,7 +1195,9 @@ def download_details():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json(
+            silent=True
+        ) or {}
 
         url = data.get(
             "url",
@@ -1194,22 +1218,30 @@ def download_details():
         if not url:
 
             return jsonify({
+
                 "success": False,
+
                 "error":
                     "YouTube URL is required."
             }), 400
 
         if not job_id:
+
             job_id = create_job()
 
         update_job(
             job_id,
+
             status="starting",
+
             progress=0,
+
             message="Creating details document..."
         )
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title, video_folder = get_video_folder(
             info
@@ -1217,8 +1249,11 @@ def download_details():
 
         details_file = create_details_file(
             info,
+
             title,
+
             video_folder,
+
             quality
         )
 
@@ -1230,15 +1265,21 @@ def download_details():
 
         update_job(
             job_id,
+
             status="completed",
+
             progress=100,
+
             elapsed=elapsed,
+
             message="Details document created."
         )
 
         return send_file(
             details_file,
+
             as_attachment=True,
+
             download_name=details_file.name
         )
 
@@ -1246,12 +1287,16 @@ def download_details():
 
         update_job(
             job_id,
+
             status="error",
+
             message=str(e)
         )
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
 
@@ -1270,7 +1315,9 @@ def download_all():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json(
+            silent=True
+        ) or {}
 
         url = data.get(
             "url",
@@ -1291,41 +1338,53 @@ def download_all():
         if not url:
 
             return jsonify({
+
                 "success": False,
+
                 "error":
                     "YouTube URL is required."
             }), 400
 
         if not job_id:
+
             job_id = create_job()
 
         update_job(
             job_id,
+
             status="starting",
+
             progress=0,
+
             message="Preparing all files..."
         )
 
-        info = get_video_info(url)
+        info = get_video_info(
+            url
+        )
 
         title, video_folder = get_video_folder(
             info
         )
 
         # ====================================================
-        # 1. VIDEO
+        # VIDEO
         # ====================================================
 
         update_job(
             job_id,
+
             status="downloading",
+
             progress=0,
+
             message=
                 f"Downloading {quality}p video..."
         )
 
         video_path = find_file(
             video_folder,
+
             f"{title} - {quality}p.mp4"
         )
 
@@ -1336,7 +1395,7 @@ def download_all():
                 f"{title} - {quality}p.%(ext)s"
             )
 
-            video_options = base_fast_options(
+            video_options = common_yt_options(
                 job_id
             )
 
@@ -1355,6 +1414,7 @@ def download_all():
                     "mp4",
 
                 "postprocessor_args": {
+
                     "ffmpeg": [
                         "-threads",
                         "0"
@@ -1366,29 +1426,33 @@ def download_all():
                 video_options
             ) as ydl:
 
-                ydl.download([url])
+                ydl.download(
+                    [url]
+                )
 
             video_path = find_file(
                 video_folder,
+
                 f"{title} - {quality}p.mp4"
             )
 
         if video_path is None:
 
-            return jsonify({
-                "success": False,
-                "error":
-                    "Video download failed."
-            }), 500
+            raise RuntimeError(
+                "Video download failed."
+            )
 
         # ====================================================
-        # 2. AUDIO
+        # AUDIO
         # ====================================================
 
         update_job(
             job_id,
+
             progress=0,
+
             status="downloading",
+
             message="Downloading audio..."
         )
 
@@ -1399,7 +1463,7 @@ def download_all():
 
         if not audio_path.exists():
 
-            audio_options = base_fast_options(
+            audio_options = common_yt_options(
                 job_id
             )
 
@@ -1408,13 +1472,13 @@ def download_all():
                 "format":
                     "bestaudio/best",
 
-                "outtmpl":
-                    str(
-                        video_folder /
-                        f"{title} - Audio.%(ext)s"
-                    ),
+                "outtmpl": str(
+                    video_folder /
+                    f"{title} - Audio.%(ext)s"
+                ),
 
                 "postprocessors": [
+
                     {
                         "key":
                             "FFmpegExtractAudio",
@@ -1428,6 +1492,7 @@ def download_all():
                 ],
 
                 "postprocessor_args": {
+
                     "ffmpeg": [
                         "-threads",
                         "0"
@@ -1439,67 +1504,75 @@ def download_all():
                 audio_options
             ) as ydl:
 
-                ydl.download([url])
+                ydl.download(
+                    [url]
+                )
 
         audio_path = find_file(
             video_folder,
+
             f"{title} - Audio.*"
         )
 
         # ====================================================
-        # 3. THUMBNAIL
+        # THUMBNAIL
         # ====================================================
 
         update_job(
             job_id,
+
             progress=0,
+
             message="Downloading thumbnail..."
         )
 
         thumbnail_path = find_file(
             video_folder,
+
             f"{title} - Thumbnail.*"
         )
 
         if thumbnail_path is None:
 
-            thumbnail_options = {
+            thumbnail_options = common_yt_options(
+                job_id
+            )
+
+            thumbnail_options.update({
 
                 "skip_download": True,
 
                 "writethumbnail": True,
 
-                "outtmpl":
-                    str(
-                        video_folder /
-                        f"{title} - Thumbnail.%(ext)s"
-                    ),
-
-                "noplaylist": True,
-
-                "quiet": True,
-
-                "retries": 3
-            }
+                "outtmpl": str(
+                    video_folder /
+                    f"{title} - Thumbnail.%(ext)s"
+                )
+            })
 
             with yt_dlp.YoutubeDL(
                 thumbnail_options
             ) as ydl:
 
-                ydl.download([url])
+                ydl.download(
+                    [url]
+                )
 
             thumbnail_path = find_file(
                 video_folder,
+
                 f"{title} - Thumbnail.*"
             )
 
         # ====================================================
-        # 4. DETAILS
+        # DETAILS
         # ====================================================
 
         update_job(
             job_id,
-            progress=0,
+
+            progress=90,
+
             message="Creating details document..."
         )
 
@@ -1512,19 +1585,25 @@ def download_all():
 
             details_path = create_details_file(
                 info,
+
                 title,
+
                 video_folder,
+
                 quality
             )
 
         # ====================================================
-        # 5. CREATE ZIP
+        # ZIP
         # ====================================================
 
         update_job(
             job_id,
+
             progress=95,
+
             status="processing",
+
             message="Creating ZIP package..."
         )
 
@@ -1534,11 +1613,14 @@ def download_all():
         )
 
         if zip_path.exists():
+
             zip_path.unlink()
 
         with zipfile.ZipFile(
             zip_path,
+
             "w",
+
             zipfile.ZIP_DEFLATED
         ) as zip_file:
 
@@ -1553,6 +1635,7 @@ def download_all():
 
                     zip_file.write(
                         file_path,
+
                         archive_name
                     )
 
@@ -1564,15 +1647,21 @@ def download_all():
 
         update_job(
             job_id,
+
             status="completed",
+
             progress=100,
+
             elapsed=elapsed,
+
             message="All files completed."
         )
 
         return send_file(
             zip_path,
+
             as_attachment=True,
+
             download_name=
                 f"{title}.zip"
         )
@@ -1581,14 +1670,47 @@ def download_all():
 
         update_job(
             job_id,
+
             status="error",
+
             message=str(e)
         )
 
         return jsonify({
+
             "success": False,
+
             "error": str(e)
         }), 500
+
+
+# ============================================================
+# HEALTH CHECK
+# ============================================================
+
+@app.route(
+    "/health",
+    methods=["GET"]
+)
+def health():
+
+    try:
+
+        version = yt_dlp.version.__version__
+
+    except Exception:
+
+        version = "unknown"
+
+    return jsonify({
+
+        "status": "ok",
+
+        "yt_dlp": version,
+
+        "download_directory":
+            str(DOWNLOAD_DIR)
+    })
 
 
 # ============================================================
@@ -1598,7 +1720,11 @@ def download_all():
 if __name__ == "__main__":
 
     print("=" * 60)
-    print("YouTube Downloader - FAST MODE")
+
+    print(
+        "YouTube Downloader - FAST MODE"
+    )
+
     print("=" * 60)
 
     print(
@@ -1612,8 +1738,14 @@ if __name__ == "__main__":
     print("=" * 60)
 
     app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True,
+        host="0.0.0.0",
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
+        ),
+        debug=False,
         threaded=True
     )
+```
