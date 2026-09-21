@@ -51,8 +51,9 @@ def common_yt_options(job_id=None):
         "quiet": False,
         "no_warnings": False,
 
-        "socket_timeout": 60,
+        "verbose": True,
 
+        "socket_timeout": 60,
         "retries": 10,
         "fragment_retries": 10,
 
@@ -60,27 +61,21 @@ def common_yt_options(job_id=None):
         "overwrites": False,
 
         "concurrent_fragment_downloads": 4,
-
         "buffersize": 1024 * 1024,
 
-        "http_chunk_size": 10 * 1024 * 1024,
-
-        # YouTube JavaScript challenge solving
         "js_runtimes": {
             "deno": {}
         },
 
-        # Download EJS challenge components
         "remote_components": {
             "ejs": "github"
         },
 
-        # YouTube player clients
         "extractor_args": {
             "youtube": {
                 "player_client": [
-                    "android_vr",
-                    "web"
+                    "web",
+                    "android_vr"
                 ]
             }
         }
@@ -93,7 +88,6 @@ def common_yt_options(job_id=None):
 
     return options
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -101,9 +95,26 @@ def home():
 
 @app.route("/health")
 def health():
+
+    import subprocess
+
+    try:
+        deno_result = subprocess.run(
+            ["deno", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        deno_version = deno_result.stdout.strip()
+
+    except Exception as e:
+        deno_version = f"ERROR: {e}"
+
     return jsonify({
         "status": "ok",
-        "yt_dlp": yt_dlp.version.__version__
+        "yt_dlp": yt_dlp.version.__version__,
+        "deno": deno_version
     })
 
 
