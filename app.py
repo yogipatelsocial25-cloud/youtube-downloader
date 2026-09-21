@@ -589,9 +589,25 @@ def download_video():
             f"{title} - {quality}p.%(ext)s"
         )
 
-        ydl_opts = base_fast_options(
-            job_id
-        )
+        ydl_opts = {
+    "format": "bestvideo*+bestaudio/best",
+    "merge_output_format": "mp4",
+
+    "outtmpl": str(download_path),
+
+    "noplaylist": True,
+
+    "quiet": True,
+    "no_warnings": False,
+
+    "js_runtimes": {
+        "deno": {}
+    },
+
+    "remote_components": {
+        "ejs": "github"
+    },
+}
 
         ydl_opts.update({
 
