@@ -762,9 +762,28 @@ def download_audio():
             f"{title} - Audio.%(ext)s"
         )
 
-        ydl_opts = base_fast_options(
-            job_id
-        )
+        ydl_opts = {
+    "format": "bestvideo*+bestaudio/best",
+    "merge_output_format": "mp4",
+
+    "outtmpl": str(download_path),
+
+    "noplaylist": True,
+
+    "quiet": False,
+    "no_warnings": False,
+
+    "js_runtimes": {
+        "deno": {}
+    },
+
+    "remote_components": {
+        "ejs": "github"
+    },
+
+    "retries": 3,
+    "fragment_retries": 3,
+}
 
         ydl_opts.update({
 
@@ -933,21 +952,28 @@ def download_thumbnail():
             f"{title} - Thumbnail.%(ext)s"
         )
 
-        ydl_opts = {
+       ydl_opts = {
+    "format": "bestvideo*+bestaudio/best",
+    "merge_output_format": "mp4",
 
-            "skip_download": True,
+    "outtmpl": str(download_path),
 
-            "writethumbnail": True,
+    "noplaylist": True,
 
-            "outtmpl":
-                output_template,
+    "quiet": False,
+    "no_warnings": False,
 
-            "noplaylist": True,
+    "js_runtimes": {
+        "deno": {}
+    },
 
-            "quiet": True,
+    "remote_components": {
+        "ejs": "github"
+    },
 
-            "retries": 3
-        }
+    "retries": 3,
+    "fragment_retries": 3,
+}
 
         with yt_dlp.YoutubeDL(
             ydl_opts
