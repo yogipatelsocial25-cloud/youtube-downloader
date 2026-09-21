@@ -1,1 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>YouTube Downloader</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+<div class="background-glow"></div>
+
+<header class="topbar">
+
+    <div class="logo">
+
+        <span class="logo-icon">
+            ▶
+        </span>
+
+        <span>
+            YT Downloader
+        </span>
+
+    </div>
+
+    <div class="status">
+
+        <span class="status-dot"></span>
+
+        Ready
+
+    </div>
+
+</header>
+
+
+<main class="container">
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="hero-badge">
+            YouTube Video Downloader
+        </div>
+
+        <h1>
+            Download Video, Audio & Thumbnail
+        </h1>
+
+        <p>
+            Select your preferred quality and download
+            everything into one organized folder.
+        </p>
+
+    </section>
+
+
+    <!-- URL -->
+
+    <section class="url-card">
+
+        <label for="youtubeUrl">
+            YouTube Video URL
+        </label>
+
+        <div class="url-row">
+
+            <input
+                type="url"
+                id="youtubeUrl"
+                placeholder="https://www.youtube.com/watch?v=..."
+                autocomplete="off"
+            >
+
+            <button
+                class="primary-btn"
+                id="infoBtn"
+            >
+                <span>🔍</span>
+                Get Video
+            </button>
+
+        </div>
+
+        <div
+            class="error-message"
+            id="errorMessage"
+        ></div>
+
+    </section>
+
+
+    <!-- LOADING -->
+
+    <section
+        class="loading-card hidden"
+        id="loadingCard"
+    >
+
+        <div class="spinner"></div>
+
+        <div>
+
+            <strong id="loadingTitle">
+                Processing...
+            </strong>
+
+            <p id="loadingText">
+                Please wait.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- VIDEO INFORMATION -->
+
+    <section
+        class="video-card hidden"
+        id="videoCard"
+    >
+
+        <div class="video-preview">
+
+            <img
+                id="thumbnail"
+                src=""
+                alt="Video thumbnail"
+            >
+
+            <div
+                class="duration"
+                id="duration"
+            >
+                00:00
+            </div>
+
+        </div>
+
+
+        <div class="video-details">
+
+            <span class="small-label">
+                VIDEO
+            </span>
+
+            <h2 id="videoTitle">
+                Video title
+            </h2>
+
+            <p id="uploader">
+                Channel
+            </p>
+
+
+            <div class="folder-info">
+
+                <span>📁</span>
+
+                <div>
+
+                    <small>
+                        Download folder
+                    </small>
+
+                    <strong id="folderName">
+                        downloads/Video Title/
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- QUALITY -->
+
+    <section
+        class="quality-section hidden"
+        id="qualitySection"
+    >
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="small-label">
+                    VIDEO QUALITY
+                </span>
+
+                <h2>
+                    Select Quality
+                </h2>
+
+            </div>
+
+            <span
+                class="selected-quality"
+                id="selectedQuality"
+            >
+                720p
+            </span>
+
+        </div>
+
+
+        <div
+            class="quality-grid"
+            id="qualityGrid"
+        ></div>
+
+    </section>
+
+
+    <!-- DOWNLOAD OPTIONS -->
+
+    <section
+        class="download-section hidden"
+        id="downloadSection"
+    >
+
+        <div class="section-heading">
+
+            <div>
+
+                <span class="small-label">
+                    DOWNLOAD
+                </span>
+
+                <h2>
+                    Choose what you need
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="download-grid">
+
+
+            <!-- VIDEO -->
+
+            <div class="download-card">
+
+                <div class="download-icon video-icon">
+                    🎬
+                </div>
+
+                <div class="download-content">
+
+                    <h3>
+                        Video
+                    </h3>
+
+                    <p>
+                        Selected quality + audio
+                    </p>
+
+                </div>
+
+                <button
+                    class="download-btn"
+                    id="downloadVideoBtn"
+                >
+                    Download
+                </button>
+
+            </div>
+
+
+            <!-- AUDIO -->
+
+            <div class="download-card">
+
+                <div class="download-icon audio-icon">
+                    🎵
+                </div>
+
+                <div class="download-content">
+
+                    <h3>
+                        Audio
+                    </h3>
+
+                    <p>
+                        MP3 · 192 kbps
+                    </p>
+
+                </div>
+
+                <button
+                    class="download-btn"
+                    id="downloadAudioBtn"
+                >
+                    Download
+                </button>
+
+            </div>
+
+
+            <!-- THUMBNAIL -->
+
+            <div class="download-card">
+
+                <div class="download-icon image-icon">
+                    🖼️
+                </div>
+
+                <div class="download-content">
+
+                    <h3>
+                        Thumbnail
+                    </h3>
+
+                    <p>
+                        Original video thumbnail
+                    </p>
+
+                </div>
+
+                <button
+                    class="download-btn"
+                    id="downloadThumbnailBtn"
+                >
+                    Download
+                </button>
+
+            </div>
+
+
+            <!-- DETAILS -->
+
+            <div class="download-card">
+
+                <div class="download-icon">
+                    📄
+                </div>
+
+                <div class="download-content">
+
+                    <h3>
+                        Video Details
+                    </h3>
+
+                    <p>
+                        Title, URL, channel, duration,
+                        quality & description
+                    </p>
+
+                </div>
+
+                <button
+                    class="download-btn"
+                    id="downloadDetailsBtn"
+                >
+                    Download
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- DOWNLOAD ALL -->
+
+        <div class="download-all-wrapper">
+
+            <button
+                class="download-all-btn"
+                id="downloadAllBtn"
+            >
+                📦 Download All Files
+            </button>
+
+            <p>
+                Creates one ZIP containing the video,
+                audio, thumbnail and details document.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- PROGRESS -->
+
+    <section
+        class="progress-card hidden"
+        id="progressCard"
+    >
+
+        <div class="progress-header">
+
+            <span id="progressText">
+                Preparing download...
+            </span>
+
+            <span id="progressPercent">
+                0%
+            </span>
+
+        </div>
+
+
+        <div class="progress-bar">
+
+            <div
+                class="progress-fill"
+                id="progressFill"
+            ></div>
+
+        </div>
+
+
+        <!-- DOWNLOAD TIMER -->
+
+        <div class="download-time-box">
+
+            <span>
+                ⏱️ Download Time
+            </span>
+
+            <strong id="downloadTimer">
+                00:00
+            </strong>
+
+        </div>
+
+
+        <!-- SPEED + ETA -->
+
+        <div class="download-stats">
+
+            <div>
+
+                <span>
+                    ⚡ Speed
+                </span>
+
+                <strong id="downloadSpeed">
+                    --
+                </strong>
+
+            </div>
+
+            <div>
+
+                <span>
+                    ⏳ ETA
+                </span>
+
+                <strong id="downloadEta">
+                    --
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- RESULT -->
+
+    <section
+        class="result-card hidden"
+        id="resultCard"
+    >
+
+        <div class="result-icon">
+            ✓
+        </div>
+
+        <div>
+
+            <h3>
+                Download completed
+            </h3>
+
+            <p id="resultText">
+                Your file has been downloaded.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- FOLDER NOTE -->
+
+    <section class="folder-note">
+
+        <div class="folder-note-icon">
+            📁
+        </div>
+
+        <div>
+
+            <strong>
+                Organized downloads
+            </strong>
+
+            <p>
+                Video, audio, thumbnail and details
+                for the same video are stored together
+                in one folder.
+            </p>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+
+    <p>
+        YouTube Downloader · Flask + yt-dlp + FFmpeg
+    </p>
+
+</footer>
+
+
+<script
+    src="{{ url_for('static', filename='script.js') }}"
+></script>
+
+</body>
+
+</html>
